@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #FFF8F0;
+  color: #3D2C2E;
+}
+
+.font-fredoka {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(-5deg); }
+}
+
+@keyframes paw-walk {
+  0% { opacity: 0; transform: scale(0.5) rotate(-20deg); }
+  50% { opacity: 1; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(20deg); }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #FFE8D6 25%, #FFD4B8 50%, #FFE8D6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.option-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.option-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.15);
+}
+
+.option-card.selected {
+  border-color: #FF6B35;
+  background: linear-gradient(135deg, #FFF0E8, #FFE8D6);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.25);
+}
+
+.step-dot {
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background-color: #FF6B35;
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2);
+}
+
+.step-dot.completed {
+  background-color: #2EC4B6;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFD4B8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF6B35;
+}
