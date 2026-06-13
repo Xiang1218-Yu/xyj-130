@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useCreationStore } from '@/store/useCreationStore'
 import { generateImageUrl, buildPrompt } from '@/utils/imageUtils'
-import { motion } from 'framer-motion'
-import { Download, RefreshCw, Sparkles, Share2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Download, RefreshCw, Sparkles, Share2, AlertCircle } from 'lucide-react'
 import ExportModal from './ExportModal'
 
 export default function GeneratePanel() {
@@ -16,37 +16,84 @@ export default function GeneratePanel() {
     prevStep,
   } = useCreationStore()
 
-  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageKey, setImageKey] = useState(0)
+  const [imageLoading, setImageLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const isGeneratingRef = useRef(false)
 
   const handleGenerate = useCallback(() => {
     setIsGenerating(true)
-    setImageLoaded(false)
+    setImageLoading(true)
+    setImageError(false)
     setGeneratedImage(null)
+    setImageKey(prev => prev + 1)
+    isGeneratingRef.current = true
 
     const imgUrl = generateImageUrl(config)
 
     const img = new Image()
     img.crossOrigin = 'anonymous'
+    img.referrerPolicy = 'no-referrer'
+
+    const handleSuccess = () => {
+      if (isGeneratingRef.current) {
+        setGeneratedImage(imgUrl)
+        setIsGenerating(false)
+        setImageLoading(false)
+        setImageError(false)
+        isGeneratingRef.current = false
+      }
+    }
+
+    const handleFail = () => {
+      if (isGeneratingRef.current) {
+        setGeneratedImage(imgUrl)
+        setIsGenerating(false)
+        setImageLoading(false)
+        setImageError(true)
+        isGeneratingRef.current = false
+      }
+    }
+
+    const timeoutId = setTimeout(() => {
+      handleFail()
+    }, 30000)
+
     img.onload = () => {
-      setGeneratedImage(imgUrl)
-      setIsGenerating(false)
-      setImageLoaded(true)
+      clearTimeout(timeoutId)
+      handleSuccess()
     }
+
     img.onerror = () => {
-      setGeneratedImage(imgUrl)
-      setIsGenerating(false)
-      setImageLoaded(true)
+      clearTimeout(timeoutId)
+      handleFail()
     }
+
     img.src = imgUrl
   }, [config, setGeneratedImage, setIsGenerating])
 
-  useEffect(() => {
-    if (!generatedImageUrl) {
-      handleGenerate()
+  const handleImageLoad = () => {
+    setImageLoading(false)
+    setImageError(false)
+    if (isGenerating) {
+      setIsGenerating(false)
     }
-  }, [generatedImageUrl, handleGenerate])
+  }
+
+  const handleImageError = () => {
+    setImageLoading(false)
+    setImageError(true)
+    if (isGenerating) {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleRetry = () => {
+    handleGenerate()
+  }
 
   const promptText = buildPrompt(config)
+  const displayUrl = generatedImageUrl || generateImageUrl(config)
 
   return (
     <div className="py-6">
@@ -76,33 +123,74 @@ export default function GeneratePanel() {
         className="bg-white rounded-3xl shadow-xl shadow-brand-orange/10 border border-brand-peach/30 p-6 mb-6"
       >
         <div className="relative aspect-square max-w-md mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-brand-cream to-brand-orange-light/30">
-          {isGenerating && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-brand-cream/90 backdrop-blur-sm">
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-brand-orange-light border-t-brand-orange rounded-full animate-spin" />
-                <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-orange animate-pulse" size={28} />
-              </div>
-              <p className="mt-6 font-nunito font-bold text-brand-brown text-lg">
-                正在绘制可爱的卡通形象...
-              </p>
-              <p className="mt-2 font-nunito text-brand-brown-light text-sm">
-                请稍等片刻 ✨
-              </p>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {(isGenerating || imageLoading) && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-brand-cream/90 backdrop-blur-sm"
+              >
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-brand-orange-light border-t-brand-orange rounded-full animate-spin" />
+                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-orange animate-pulse" size={28} />
+                </div>
+                <p className="mt-6 font-nunito font-bold text-brand-brown text-lg">
+                  正在绘制可爱的卡通形象...
+                </p>
+                <p className="mt-2 font-nunito text-brand-brown-light text-sm">
+                  请稍等片刻 ✨
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {generatedImageUrl && imageLoaded && (
-            <motion.img
+          {generatedImageUrl && (
+            <motion.div
+              key={`image-${imageKey}`}
               initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
+              animate={{ opacity: imageError ? 0 : 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              src={generatedImageUrl}
-              alt="Generated pet portrait"
-              className="w-full h-full object-cover"
-            />
+              className="w-full h-full"
+            >
+              <img
+                key={imageKey}
+                src={displayUrl}
+                alt="Generated pet portrait"
+                className="w-full h-full object-cover"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
           )}
 
-          {!isGenerating && !generatedImageUrl && (
+          {imageError && !imageLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 flex flex-col items-center justify-center bg-brand-cream/95 z-30"
+            >
+              <AlertCircle className="text-brand-orange mb-4" size={56} />
+              <p className="font-nunito font-bold text-brand-brown text-lg text-center px-6">
+                图片生成中
+              </p>
+              <p className="mt-2 font-nunito text-brand-brown-light text-sm text-center px-6 max-w-xs">
+                AI 正在为您绘制专属的宠物卡通形象，请稍候...
+              </p>
+              <button
+                onClick={handleRetry}
+                className="mt-6 px-6 py-3 bg-brand-orange text-white rounded-full font-nunito font-semibold hover:bg-brand-orange-dark transition-colors flex items-center gap-2"
+              >
+                <RefreshCw size={18} />
+                重新生成
+              </button>
+            </motion.div>
+          )}
+
+          {!isGenerating && !generatedImageUrl && !imageError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-brand-brown-light/50">
               <Sparkles size={64} strokeWidth={1.5} />
               <p className="mt-4 font-nunito font-semibold">点击下方按钮生成</p>
@@ -112,7 +200,7 @@ export default function GeneratePanel() {
 
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
           <button
-            onClick={handleGenerate}
+            onClick={handleRetry}
             disabled={isGenerating}
             className="flex items-center gap-2 px-6 py-3 rounded-full font-nunito font-bold bg-brand-mint text-white hover:bg-brand-mint/90 shadow-lg shadow-brand-mint/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -122,7 +210,7 @@ export default function GeneratePanel() {
 
           <button
             onClick={() => setShowExportModal(true)}
-            disabled={!generatedImageUrl}
+            disabled={!generatedImageUrl || imageError || isGenerating}
             className="flex items-center gap-2 px-6 py-3 rounded-full font-nunito font-bold bg-brand-orange text-white hover:bg-brand-orange-dark shadow-lg shadow-brand-orange/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={18} />

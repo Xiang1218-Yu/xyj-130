@@ -3,47 +3,47 @@ import type { PetConfig } from '@/store/useCreationStore'
 export function buildPrompt(config: PetConfig): string {
   const parts: string[] = []
 
-  parts.push('cute cartoon kawaii style illustration of a')
+  parts.push('可爱的卡通风格插画，一只')
 
   if (config.breedPromptName) {
     parts.push(config.breedPromptName)
   } else if (config.type === 'cat') {
-    parts.push('cat')
+    parts.push('猫咪')
   } else if (config.type === 'dog') {
-    parts.push('dog')
+    parts.push('狗狗')
   }
 
   if (config.coatColorPrompt && config.coatPatternPrompt) {
-    parts.push(`with ${config.coatColorPrompt} ${config.coatPatternPrompt} fur`)
+    parts.push(`，${config.coatColorPrompt}${config.coatPatternPrompt}的毛发`)
   } else if (config.coatColorPrompt) {
-    parts.push(`with ${config.coatColorPrompt} fur`)
+    parts.push(`，${config.coatColorPrompt}的毛发`)
   } else if (config.coatPatternPrompt) {
-    parts.push(`with ${config.coatPatternPrompt} fur`)
+    parts.push(`，${config.coatPatternPrompt}的毛发`)
   }
 
   if (config.eyeShapePrompt) {
-    parts.push(config.eyeShapePrompt)
+    parts.push(`，${config.eyeShapePrompt}`)
   }
 
   if (config.earTypePrompt) {
-    parts.push(config.earTypePrompt)
+    parts.push(`，${config.earTypePrompt}`)
   }
 
   if (config.bodyTypePrompt) {
-    parts.push(config.bodyTypePrompt)
+    parts.push(`，${config.bodyTypePrompt}`)
   }
 
   if (config.posePrompt) {
-    parts.push(config.posePrompt)
+    parts.push(`，${config.posePrompt}`)
   }
 
   if (config.accessoryPrompt) {
-    parts.push(config.accessoryPrompt)
+    parts.push(`，${config.accessoryPrompt}`)
   }
 
-  parts.push('kawaii style, simple clean pastel background, digital illustration, vibrant colors, flat design, chibi proportions, adorable, high quality')
+  parts.push('。Q版卡通风格，简洁干净的背景，数字插画，鲜艳的色彩，扁平化设计，可爱的比例，超萌，高质量，宠物外形和真实品种保持一致')
 
-  return parts.join(' ')
+  return parts.join('')
 }
 
 export function generateImageUrl(config: PetConfig): string {
