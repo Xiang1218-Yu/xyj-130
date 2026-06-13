@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { useCreationStore } from '@/store/useCreationStore'
 import { generateImageUrl, buildPrompt } from '@/utils/imageUtils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Download, RefreshCw, Sparkles, Share2, AlertCircle } from 'lucide-react'
+import { Download, RefreshCw, Sparkles, Share2 } from 'lucide-react'
 import ExportModal from './ExportModal'
 
 export default function GeneratePanel() {
@@ -18,63 +18,19 @@ export default function GeneratePanel() {
 
   const [imageKey, setImageKey] = useState(0)
   const [imageLoading, setImageLoading] = useState(false)
-  const [imageError, setImageError] = useState(false)
-  const isGeneratingRef = useRef(false)
 
   const handleGenerate = useCallback(() => {
     setIsGenerating(true)
     setImageLoading(true)
-    setImageError(false)
     setGeneratedImage(null)
     setImageKey(prev => prev + 1)
-    isGeneratingRef.current = true
 
     const imgUrl = generateImageUrl(config)
-
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.referrerPolicy = 'no-referrer'
-
-    const handleSuccess = () => {
-      if (isGeneratingRef.current) {
-        setGeneratedImage(imgUrl)
-        setIsGenerating(false)
-        setImageLoading(false)
-        setImageError(false)
-        isGeneratingRef.current = false
-      }
-    }
-
-    const handleFail = () => {
-      if (isGeneratingRef.current) {
-        setGeneratedImage(imgUrl)
-        setIsGenerating(false)
-        setImageLoading(false)
-        setImageError(true)
-        isGeneratingRef.current = false
-      }
-    }
-
-    const timeoutId = setTimeout(() => {
-      handleFail()
-    }, 30000)
-
-    img.onload = () => {
-      clearTimeout(timeoutId)
-      handleSuccess()
-    }
-
-    img.onerror = () => {
-      clearTimeout(timeoutId)
-      handleFail()
-    }
-
-    img.src = imgUrl
+    setGeneratedImage(imgUrl)
   }, [config, setGeneratedImage, setIsGenerating])
 
   const handleImageLoad = () => {
     setImageLoading(false)
-    setImageError(false)
     if (isGenerating) {
       setIsGenerating(false)
     }
@@ -82,14 +38,9 @@ export default function GeneratePanel() {
 
   const handleImageError = () => {
     setImageLoading(false)
-    setImageError(true)
     if (isGenerating) {
       setIsGenerating(false)
     }
-  }
-
-  const handleRetry = () => {
-    handleGenerate()
   }
 
   const promptText = buildPrompt(config)
@@ -150,7 +101,7 @@ export default function GeneratePanel() {
             <motion.div
               key={`image-${imageKey}`}
               initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: imageError ? 0 : 1, scale: 1 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               className="w-full h-full"
             >
@@ -161,36 +112,11 @@ export default function GeneratePanel() {
                 className="w-full h-full object-cover"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
               />
             </motion.div>
           )}
 
-          {imageError && !imageLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center bg-brand-cream/95 z-30"
-            >
-              <AlertCircle className="text-brand-orange mb-4" size={56} />
-              <p className="font-nunito font-bold text-brand-brown text-lg text-center px-6">
-                图片生成中
-              </p>
-              <p className="mt-2 font-nunito text-brand-brown-light text-sm text-center px-6 max-w-xs">
-                AI 正在为您绘制专属的宠物卡通形象，请稍候...
-              </p>
-              <button
-                onClick={handleRetry}
-                className="mt-6 px-6 py-3 bg-brand-orange text-white rounded-full font-nunito font-semibold hover:bg-brand-orange-dark transition-colors flex items-center gap-2"
-              >
-                <RefreshCw size={18} />
-                重新生成
-              </button>
-            </motion.div>
-          )}
-
-          {!isGenerating && !generatedImageUrl && !imageError && (
+          {!isGenerating && !generatedImageUrl && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-brand-brown-light/50">
               <Sparkles size={64} strokeWidth={1.5} />
               <p className="mt-4 font-nunito font-semibold">点击下方按钮生成</p>
@@ -200,7 +126,7 @@ export default function GeneratePanel() {
 
         <div className="mt-6 flex flex-wrap gap-3 justify-center">
           <button
-            onClick={handleRetry}
+            onClick={handleGenerate}
             disabled={isGenerating}
             className="flex items-center gap-2 px-6 py-3 rounded-full font-nunito font-bold bg-brand-mint text-white hover:bg-brand-mint/90 shadow-lg shadow-brand-mint/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -210,7 +136,7 @@ export default function GeneratePanel() {
 
           <button
             onClick={() => setShowExportModal(true)}
-            disabled={!generatedImageUrl || imageError || isGenerating}
+            disabled={!generatedImageUrl || isGenerating}
             className="flex items-center gap-2 px-6 py-3 rounded-full font-nunito font-bold bg-brand-orange text-white hover:bg-brand-orange-dark shadow-lg shadow-brand-orange/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={18} />

@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import { useCreationStore } from '@/store/useCreationStore'
 import { generateImageUrl } from '@/utils/imageUtils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Image as ImageIcon, Sparkles, AlertCircle } from 'lucide-react'
+import { Image as ImageIcon, Sparkles } from 'lucide-react'
 import { STEP_ORDER } from '@/data/petOptions'
 
 export default function PreviewPanel() {
   const { config, generatedImageUrl, isGenerating, currentStep } = useCreationStore()
   const [imageKey, setImageKey] = useState(0)
   const [imageLoading, setImageLoading] = useState(false)
-  const [imageError, setImageError] = useState(false)
 
   const currentStepIndex = STEP_ORDER.indexOf(currentStep)
   const breedStepIndex = STEP_ORDER.indexOf('breed')
@@ -21,18 +20,15 @@ export default function PreviewPanel() {
     if (hasEnoughConfig && !generatedImageUrl) {
       setImageKey(prev => prev + 1)
       setImageLoading(true)
-      setImageError(false)
     }
   }, [config.breed, config.coatColor, config.coatPattern, config.eyeShape, config.earType, config.bodyType, config.pose, config.accessory, hasEnoughConfig, generatedImageUrl])
 
   const handleImageLoad = () => {
     setImageLoading(false)
-    setImageError(false)
   }
 
   const handleImageError = () => {
     setImageLoading(false)
-    setImageError(true)
   }
 
   return (
@@ -68,52 +64,22 @@ export default function PreviewPanel() {
             </AnimatePresence>
 
             {hasEnoughConfig ? (
-              <>
-                <motion.div
-                  key={`image-${imageKey}`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: imageError || imageLoading ? 0 : 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-full h-full"
-                >
-                  <img
-                    key={imageKey}
-                    src={previewUrl}
-                    alt="Pet preview"
-                    className="w-full h-full object-cover"
-                    onLoad={handleImageLoad}
-                    onError={handleImageError}
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-
-                {imageError && !imageLoading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center bg-brand-cream/90 z-20"
-                  >
-                    <AlertCircle className="text-brand-orange mb-3" size={48} />
-                    <p className="font-nunito font-semibold text-brand-brown text-center px-4">
-                      图片加载中
-                    </p>
-                    <p className="font-nunito text-sm text-brand-brown-light mt-1 text-center px-4">
-                      请稍候，正在为您的宠物绘制卡通形象...
-                    </p>
-                    <button
-                      onClick={() => {
-                        setImageKey(prev => prev + 1)
-                        setImageLoading(true)
-                        setImageError(false)
-                      }}
-                      className="mt-4 px-4 py-2 bg-brand-orange text-white rounded-full font-nunito text-sm font-semibold hover:bg-brand-orange-dark transition-colors"
-                    >
-                      重新加载
-                    </button>
-                  </motion.div>
-                )}
-              </>
+              <motion.div
+                key={`image-${imageKey}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full"
+              >
+                <img
+                  key={imageKey}
+                  src={previewUrl}
+                  alt="Pet preview"
+                  className="w-full h-full object-cover"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+              </motion.div>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-brand-brown-light/50">
                 <ImageIcon size={48} strokeWidth={1.5} />
@@ -123,7 +89,7 @@ export default function PreviewPanel() {
               </div>
             )}
 
-            {generatedImageUrl && !isGenerating && !imageError && (
+            {generatedImageUrl && !isGenerating && (
               <div className="absolute top-3 right-3 bg-brand-mint text-white px-3 py-1 rounded-full text-xs font-nunito font-bold shadow-lg z-30">
                 已生成 ✨
               </div>
