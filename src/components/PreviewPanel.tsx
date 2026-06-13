@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useCreationStore } from '@/store/useCreationStore'
 import { generateImageUrl } from '@/utils/imageUtils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Image as ImageIcon, Sparkles } from 'lucide-react'
+import { Image as ImageIcon, Sparkles, AlertCircle, RefreshCw } from 'lucide-react'
 import { STEP_ORDER } from '@/data/petOptions'
 
 export default function PreviewPanel() {
   const { config, generatedImageUrl, isGenerating, currentStep } = useCreationStore()
-  const [imageKey, setImageKey] = useState(0)
   const [imageLoading, setImageLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const timeoutRef = useRef<number | null>(null)
+  const loadingRef = useRef(false)
 
   const currentStepIndex = STEP_ORDER.indexOf(currentStep)
   const breedStepIndex = STEP_ORDER.indexOf('breed')
@@ -16,20 +19,78 @@ export default function PreviewPanel() {
 
   const previewUrl = generatedImageUrl || (hasEnoughConfig ? generateImageUrl(config) : '')
 
-  useEffect(() => {
-    if (hasEnoughConfig && !generatedImageUrl) {
-      setImageKey(prev => prev + 1)
-      setImageLoading(true)
+  const clearTimer = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
-  }, [config.breed, config.coatColor, config.coatPattern, config.eyeShape, config.earType, config.bodyType, config.pose, config.accessory, hasEnoughConfig, generatedImageUrl])
+  }
+
+  const startLoading = () => {
+    clearTimer()
+    loadingRef.current = true
+    setImageLoading(true)
+    setImageError(false)
+    setErrorMsg('')
+    timeoutRef.current = window.setTimeout(() => {
+      if (loadingRef.current) {
+        loadingRef.current = false
+        setImageLoading(false)
+        setImageError(true)
+        setErrorMsg('加载超时，请检查网络后重试')
+      }
+    }, 45000)
+  }
 
   const handleImageLoad = () => {
+    clearTimer()
+    loadingRef.current = false
     setImageLoading(false)
+    setImageError(false)
   }
 
   const handleImageError = () => {
+    clearTimer()
+    loadingRef.current = false
     setImageLoading(false)
+    setImageError(true)
+    setErrorMsg('图片加载失败，请重试')
   }
+
+  const handleRetry = () => {
+    startLoading()
+    const img = new Image()
+    img.onload = handleImageLoad
+    img.onerror = handleImageError
+    img.src = previewUrl
+  }
+
+  useEffect(() => {
+    if (hasEnoughConfig && !generatedImageUrl) {
+      startLoading()
+    }
+    return () => {
+      clearTimer()
+      loadingRef.current = false
+    }
+  }, [
+    config.breed,
+    config.coatColor,
+    config.coatPattern,
+    config.eyeShape,
+    config.earType,
+    config.bodyType,
+    config.pose,
+    config.accessory,
+    hasEnoughConfig,
+    generatedImageUrl,
+  ])
+
+  useEffect(() => {
+    return () => {
+      clearTimer()
+    }
+  }, [])
 
   return (
     <div className="sticky top-6">
@@ -59,20 +120,21 @@ export default function PreviewPanel() {
                   <p className="mt-4 font-nunito font-semibold text-brand-brown">
                     {isGenerating ? '正在生成中...' : '正在加载预览...'}
                   </p>
+                  <p className="mt-1 font-nunito text-xs text-brand-brown-light">
+                    AI 绘制需要一些时间，请耐心等待
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {hasEnoughConfig ? (
               <motion.div
-                key={`image-${imageKey}`}
                 initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={{ opacity: imageError || imageLoading ? 0 : 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
                 className="w-full h-full"
               >
                 <img
-                  key={imageKey}
                   src={previewUrl}
                   alt="Pet preview"
                   className="w-full h-full object-cover"
@@ -89,7 +151,27 @@ export default function PreviewPanel() {
               </div>
             )}
 
-            {generatedImageUrl && !isGenerating && (
+            {imageError && !imageLoading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-brand-cream/95 z-20"
+              >
+                <AlertCircle className="text-brand-orange mb-3" size={40} />
+                <p className="font-nunito font-bold text-brand-brown text-center px-4">
+                  {errorMsg || '图片加载失败'}
+                </p>
+                <button
+                  onClick={handleRetry}
+                  className="mt-4 px-4 py-2 bg-brand-orange text-white rounded-full font-nunito text-sm font-semibold hover:bg-brand-orange-dark transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw size={14} />
+                  重新加载
+                </button>
+              </motion.div>
+            )}
+
+            {generatedImageUrl && !isGenerating && !imageError && (
               <div className="absolute top-3 right-3 bg-brand-mint text-white px-3 py-1 rounded-full text-xs font-nunito font-bold shadow-lg z-30">
                 已生成 ✨
               </div>
